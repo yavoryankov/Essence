@@ -6,6 +6,12 @@ When it's enabled, Essence places a small target icon next to long articles. Cli
 
 > Status: early prototype (v0.3.1). Expect rough edges on some sites.
 
+## Screenshots
+
+![Essence summary popup](docs/popup.png)
+
+![Essence settings](docs/settings.png)
+
 ## Features
 
 - **On demand only.** Nothing is sent anywhere until you click the icon.
