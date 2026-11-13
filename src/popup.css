@@ -1,0 +1,2 @@
+body{width:260px;margin:0;font:14px system-ui;color:#172033}main{padding:16px}h1{margin:0 0 16px;font-size:20px}label{display:block;margin:12px 0}.switch{font-weight:600}input,select,button{box-sizing:border-box;width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;background:white}button{margin-top:8px;cursor:pointer}#status{color:#64748b;font-size:12px}
+button:disabled{cursor:default;color:#94a3b8}
