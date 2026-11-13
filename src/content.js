@@ -143,7 +143,11 @@
   }
 
   function isFaktorDomain() { return /(^|\.)faktor\.bg$/i.test(location.hostname); }
-  function isMediumDomain() { return /(^|\.)medium\.com$/i.test(location.hostname); }
+  // Medium also serves publications on custom domains (e.g. levelup.gitconnected.com), so check its meta tags too.
+  function isMediumDomain() {
+    if (/(^|\.)medium\.com$/i.test(location.hostname)) return true;
+    return Boolean(document.querySelector('meta[property="al:android:app_name"][content="Medium"], meta[name="twitter:app:name:iphone"][content="Medium"], meta[property="al:android:package"][content="com.medium.reader"]'));
+  }
 
   function candidateText(el) {
     let text = textCache.get(el);
@@ -192,14 +196,26 @@
 
   function findMediumInsertionText(root) {
     const title = root.querySelector('h1');
-    if (title) return findFirstTextNode(title);
-    const firstParagraph = root.querySelector('p');
-    return firstParagraph ? findFirstTextNode(firstParagraph) : findFirstTextNode(root);
+    return (title && findFirstTextNode(title)) || findFirstTextNode(root);
   }
 
+  // Never place the icon inside floating toolbars, buttons, hidden or out-of-flow widgets
+  // that sites render inside the article (e.g. Medium's clap/response bar).
+  const NON_CONTENT = 'aside, nav, button, footer, form, figcaption, svg, [role="button"], [role="toolbar"], [role="navigation"], [aria-hidden="true"], [hidden]';
+  function isContentText(node, root) {
+    const parent = node.parentElement;
+    if (!parent) return false;
+    const blocker = parent.closest(NON_CONTENT);
+    if (blocker && (blocker === root || root.contains(blocker))) return false;
+    for (let el = parent; el && el !== root; el = el.parentElement) {
+      const style = getComputedStyle(el);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.position === 'absolute' || style.position === 'fixed') return false;
+    }
+    return true;
+  }
   function findFirstTextNode(root) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) { return node.nodeValue?.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+      acceptNode(node) { return node.nodeValue?.trim() && isContentText(node, root) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
     });
     return walker.nextNode();
   }
