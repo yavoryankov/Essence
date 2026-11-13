@@ -1,10 +1,11 @@
 {
   "name": "essence",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "test:e2e": "for f in tests/e2e/*.cjs; do echo \"== $f\"; node \"$f\" || exit 1; done"
+    "test:e2e": "for f in tests/e2e/*.cjs; do echo \"== $f\"; node \"$f\" || exit 1; done",
+    "package": "mkdir -p dist && rm -f dist/essence-$npm_package_version.zip && zip -r -X -q dist/essence-$npm_package_version.zip manifest.json LICENSE src icons -x '*.DS_Store' && echo dist/essence-$npm_package_version.zip"
   }
 }

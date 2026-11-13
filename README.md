@@ -4,7 +4,7 @@ A Chrome extension (Manifest V3) that summarizes long articles with AI, on deman
 
 When it's enabled, Essence places a small target icon next to long articles. Click the icon and the essence of the text appears in a popup in the top-right corner. **The page itself is never modified.** Nothing is inserted into the article, hidden or rearranged.
 
-> Status: early prototype (v0.3.1). Expect rough edges on some sites.
+> Status: early prototype (v0.3.2). Expect rough edges on some sites.
 
 ## Screenshots
 
@@ -32,9 +32,9 @@ The summary popup:
 
 ## Installation
 
-1. Download or clone this repository.
+1. Download the latest `essence-<version>.zip` from [Releases](https://github.com/yavoryankov/Essence/releases) and unzip it (or clone this repository).
 2. Open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the repository folder.
+3. Click **Load unpacked** and select the unzipped folder.
 4. Open the extension's **Settings**:
    - choose a provider
    - enter your API key
@@ -69,6 +69,8 @@ The model names are presets and may go out of date. Check your provider's docume
 
 ## Privacy
 
+See the full [privacy policy](PRIVACY.md). In short:
+
 - **What is sent:** the page title and up to 12,000 characters of the article. They go only to the endpoint you configured, and only when you click the icon.
 - **Your API key:** stored **unencrypted** in `chrome.storage.local` of your Chrome profile. It is not synced. Use a key with a spending limit.
 - **Ratings, usage statistics and cached summaries** stay in your browser.
@@ -90,6 +92,14 @@ Browser smoke tests load the extension in Chromium with local test pages and a f
 npm install --no-save playwright && npx playwright install chromium
 npm run test:e2e
 ```
+
+To build a ZIP for a release or the Chrome Web Store:
+
+```bash
+npm run package        # dist/essence-<version>.zip
+```
+
+See [docs/chrome-web-store.md](docs/chrome-web-store.md) for the store listing texts and assets.
 
 `tests/e2e/untouched.cjs` checks that the page's HTML is byte-for-byte identical before and after analyzing it.
 
