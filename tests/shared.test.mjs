@@ -72,3 +72,22 @@ test('normalizeText, sha256 and todayKey', async () => {
   assert.equal((await sha256('abc')).slice(0, 8), 'ba7816bf');
   assert.equal(todayKey(new Date(2026, 0, 5)), '2026-01-05');
 });
+
+import { buildPrompt, DEFAULT_SYSTEM_PROMPT, MAX_CUSTOM_PROMPT_LENGTH } from '../src/shared.js';
+
+test('buildPrompt uses default instructions and always appends the JSON format', () => {
+  const { system, user } = buildPrompt({ outputLanguage: 'bg' }, 'T', 'x'.repeat(20000));
+  assert.ok(system.startsWith(DEFAULT_SYSTEM_PROMPT));
+  assert.match(system, /Return exactly this JSON shape/);
+  assert.match(system, /Output language: Bulgarian\./);
+  assert.equal(user.length, 'Title: T\n\nText:\n'.length + 12000);
+});
+
+test('buildPrompt uses custom instructions, caps their length and maps languages', () => {
+  const { system } = buildPrompt({ customSystemPrompt: '  Моят промпт  ', outputLanguage: 'source' }, '', '');
+  assert.ok(system.startsWith('Моят промпт\n'));
+  assert.match(system, /Return exactly this JSON shape/);
+  assert.match(system, /same as the source text/);
+  const long = buildPrompt({ customSystemPrompt: 'a'.repeat(MAX_CUSTOM_PROMPT_LENGTH + 50) }, '', '').system;
+  assert.ok(long.startsWith('a'.repeat(MAX_CUSTOM_PROMPT_LENGTH) + '\n'));
+});

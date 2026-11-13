@@ -1,4 +1,4 @@
-import { getSettings, saveSettings, PROVIDER_PRESETS, todayKey } from './shared.js';
+import { getSettings, saveSettings, PROVIDER_PRESETS, todayKey, DEFAULT_SYSTEM_PROMPT, MAX_CUSTOM_PROMPT_LENGTH, buildPrompt } from './shared.js';
 
 const $ = (selector) => document.querySelector(selector);
 const TEXT_KEYS = ['endpoint', 'model', 'apiKey'];
@@ -16,6 +16,29 @@ let currentProvider = provider.value;
 for (const key of TEXT_KEYS) $(`#${key}`).value = settings[key] || '';
 for (const key of NUMBER_KEYS) $(`#${key}`).value = settings[key] ?? 0;
 for (const key of CHECK_KEYS) $(`#${key}`).checked = Boolean(settings[key]);
+$('#customSystemPrompt').value = String(settings.customSystemPrompt || '').trim() || DEFAULT_SYSTEM_PROMPT;
+$('#outputLanguage').value = settings.outputLanguage || 'bg';
+
+function promptSettingsFromForm() {
+  return {
+    customSystemPrompt: $('#customSystemPrompt').value.trim(),
+    outputLanguage: $('#outputLanguage').value,
+    ...Object.fromEntries(CHECK_KEYS.map((key) => [key, $(`#${key}`).checked]))
+  };
+}
+function renderPreview() {
+  const draft = promptSettingsFromForm();
+  const { system, user } = buildPrompt(draft, '{page title}', '{article text}');
+  $('#previewSystem').textContent = system;
+  $('#previewUser').textContent = user;
+  const length = draft.customSystemPrompt.length;
+  const count = $('#promptCount');
+  count.textContent = `${length} / ${MAX_CUSTOM_PROMPT_LENGTH} characters${draft.customSystemPrompt === DEFAULT_SYSTEM_PROMPT ? ' · default' : ' · custom'}`;
+  count.classList.toggle('over', length > MAX_CUSTOM_PROMPT_LENGTH);
+}
+for (const id of ['customSystemPrompt', 'outputLanguage', ...CHECK_KEYS]) $(`#${id}`).addEventListener('input', renderPreview);
+$('#resetPrompt').onclick = () => { $('#customSystemPrompt').value = DEFAULT_SYSTEM_PROMPT; renderPreview(); };
+renderPreview();
 
 provider.onchange = () => {
   apiKeys[currentProvider] = $('#apiKey').value.trim();
@@ -51,8 +74,13 @@ $('#save').onclick = async () => {
   if (text.endpoint && !validEndpoint(text.endpoint)) { showMessage('Endpoint must be an https:// URL (http:// only for localhost).', true); return; }
   const numbers = Object.fromEntries(NUMBER_KEYS.map((key) => [key, Math.max(0, Number($(`#${key}`).value) || 0)]));
   numbers.dailyRequestLimit = Math.round(numbers.dailyRequestLimit);
+  const promptDraft = promptSettingsFromForm();
+  if (promptDraft.customSystemPrompt.length > MAX_CUSTOM_PROMPT_LENGTH) { showMessage(`Instructions are longer than ${MAX_CUSTOM_PROMPT_LENGTH} characters.`, true); return; }
+  // Store '' for the default so future improvements to the default prompt reach existing users.
+  if (!promptDraft.customSystemPrompt || promptDraft.customSystemPrompt === DEFAULT_SYSTEM_PROMPT) promptDraft.customSystemPrompt = '';
   apiKeys[provider.value] = text.apiKey;
   await saveSettings({
+    customSystemPrompt: promptDraft.customSystemPrompt, outputLanguage: promptDraft.outputLanguage,
     provider: provider.value, ...text, ...numbers, apiKeys,
     ...Object.fromEntries(CHECK_KEYS.map((key) => [key, $(`#${key}`).checked]))
   });
