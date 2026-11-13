@@ -1,12 +1,8 @@
 // Article detection and icon placement. A classic script (no imports/exports) so it can run
 // as a content script before content.js, in Node tests, and pasted into a page for diagnostics.
 (() => {
-  const PANEL_ATTR = 'data-essence-panel';
-  const TRIGGER_ATTR = 'data-essence-trigger';
-  const ANCHOR_ATTR = 'data-essence-anchor';
-  const OWN_SELECTOR = `[${PANEL_ATTR}], [${TRIGGER_ATTR}]`;
   const MAX_TEXT_LENGTH = 120000;
-  const BLOCKED_ANCESTORS = `${OWN_SELECTOR}, nav, header, footer, aside, form, [role="navigation"], [role="banner"], [role="complementary"]`;
+  const BLOCKED_ANCESTORS = `nav, header, footer, aside, form, [role="navigation"], [role="banner"], [role="complementary"]`;
   // Containers whose class names mark them as non-article widgets.
   const EXCLUDED_CLASS = /(^|[\s_-])(sidebar|header|footer|nav|navbar|navigation|menu|comments?|related|recommended|recommendations?|trending|promo|newsletter|sponsored|advert|ads?|banner|social|share|sharing|carousel|outbrain|taboola)($|[\s_-])/i;
   // Never put the icon inside these: links and controls navigate or react to clicks,
@@ -186,5 +182,5 @@
     return { collectCandidates, findInsertionPoint, candidateText, textLengthOk, linkDensity, proseDensity, isMediumSite, resetCache };
   }
 
-  globalThis.EssenceDetect = { createDetector, normalizeText, PANEL_ATTR, TRIGGER_ATTR, ANCHOR_ATTR, OWN_SELECTOR };
+  globalThis.EssenceDetect = { createDetector, normalizeText };
 })();

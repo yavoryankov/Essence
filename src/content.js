@@ -9,7 +9,7 @@
   const ROOT_ATTR = 'data-essence-root';
   const ICON_SIZE = 26;
   // Settings that only change what the popup shows.
-  const DISPLAY_KEYS = ['showInterestScore', 'showKeyPoints', 'showTopics', 'showConclusion', 'displayMode'];
+  const DISPLAY_KEYS = ['showInterestScore', 'showKeyPoints', 'showTopics', 'showConclusion'];
 
   let settings = { ...DEFAULT_SETTINGS };
   let anchored = new WeakSet();       // page elements that already have an icon

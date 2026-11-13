@@ -2,11 +2,11 @@
 // pages, and via dynamic import() by the content script.
 
 export const DEFAULT_SETTINGS = {
-  enabled: false, minimumCharacters: 1000, outputLanguage: 'source', displayMode: 'above',
+  enabled: false, minimumCharacters: 1000, outputLanguage: 'source',
   showInterestScore: false, showKeyPoints: false, showTopics: false, showConclusion: false,
   inputCostPerMillion: 0, outputCostPerMillion: 0,
   provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions',
-  model: 'gpt-4o-mini', apiKey: '', excludedDomains: [], dailyRequestLimit: 50, promptVersion: '2',
+  model: 'gpt-4o-mini', apiKey: '', excludedDomains: [], dailyRequestLimit: 50,
   customSystemPrompt: '' // empty = DEFAULT_SYSTEM_PROMPT
 };
 
@@ -17,7 +17,6 @@ export const PROVIDER_PRESETS = {
   custom: { label: 'Other OpenAI-compatible', endpoint: '', model: '' }
 };
 
-export const MAX_TEXT_LENGTH = 120000;
 export const MAX_CACHE_ENTRIES = 300;
 export const MAX_FEEDBACK_ENTRIES = 2000;
 
