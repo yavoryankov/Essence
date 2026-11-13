@@ -9,7 +9,6 @@
   const ANCHOR_ATTR = 'data-essence-anchor';
   const HIDDEN_ATTR = 'data-essence-hidden';
   const OWN_SELECTOR = `[${PANEL_ATTR}], [${TRIGGER_ATTR}]`;
-  const BLOCKED_ANCESTORS = `${OWN_SELECTOR}, nav, header, footer, aside, form, [role="navigation"], [role="banner"], [role="complementary"]`;
   // Settings that only change how a finished panel looks; panels are re-rendered, not removed.
   const DISPLAY_KEYS = ['showInterestScore', 'showKeyPoints', 'showTopics', 'showConclusion', 'displayMode'];
 
@@ -18,7 +17,7 @@
   let settings = { ...DEFAULT_SETTINGS };
   let observer = null;
   let scanScheduled = false;
-  let textCache = new WeakMap(); // per-scan memo of normalized innerText
+  const detector = globalThis.EssenceDetect.createDetector({ getMinimum: () => settings.minimumCharacters });
 
   async function loadSettings() {
     const stored = await chrome.storage.local.get('settings');
@@ -55,12 +54,11 @@
 
   async function scan() {
     if (!isActive()) return;
-    textCache = new WeakMap();
-    const candidates = collectCandidates();
+    const candidates = detector.collectCandidates();
     for (const element of candidates) {
       if (!element.isConnected || element.hasAttribute(ANCHOR_ATTR) || element.querySelector(OWN_SELECTOR)) continue;
-      const text = candidateText(element);
-      if (!textLengthOk(text)) continue;
+      const text = detector.candidateText(element);
+      if (!detector.textLengthOk(text)) continue;
       const hash = await sha256(text);
       if (processed.has(hash) || document.querySelector(`[data-essence-hash="${hash}"]`)) continue;
       processed.add(hash);
@@ -68,156 +66,21 @@
     }
   }
 
-  function textLengthOk(text) { return text.length >= settings.minimumCharacters && text.length <= MAX_TEXT_LENGTH; }
-
-  // Cheap upper-bound check before the expensive innerText/getComputedStyle calls.
-  function roughlyLongEnough(el) { return (el.textContent?.length || 0) >= settings.minimumCharacters * 0.8; }
-
-  function collectCandidates() {
-    // Faktor.bg: the article is explicitly marked with itemprop="articleBody".
-    // Do not run the generic detector here; it can choose related-news blocks.
-    if (isFaktorDomain()) {
-      return [...document.querySelectorAll('[itemprop~="articleBody"]')]
-        .filter((el) => roughlyLongEnough(el) && !el.hasAttribute(ANCHOR_ATTR) && !el.querySelector(OWN_SELECTOR) && textLengthOk(candidateText(el)))
-        .slice(0, 1);
-    }
-    // Medium: prefer the dedicated post-content container so the icon is placed once.
-    if (isMediumDomain()) {
-      const isPost = (el) => el.matches('[data-testid="postContent"]');
-      const mediumCandidates = [...document.querySelectorAll('[data-testid="postContent"], article')]
-        .filter((el) => roughlyLongEnough(el) && !el.hasAttribute(ANCHOR_ATTR) && !el.querySelector(OWN_SELECTOR) && textLengthOk(candidateText(el)))
-        .sort((a, b) => Number(isPost(b)) - Number(isPost(a)));
-      if (mediumCandidates.length) return mediumCandidates.slice(0, 1);
-    }
-    // Prefer the site's explicit article body. Its wrapper can be `display: contents`.
-    const articleBodies = [...document.querySelectorAll('[itemprop~="articleBody"]')].filter((el) =>
-      roughlyLongEnough(el) && !excludedClass(el) && !el.closest(BLOCKED_ANCESTORS) && textLengthOk(candidateText(el)));
-    if (articleBodies.length) return articleBodies.slice(0, 20);
-
-    const semanticSelector = 'article, [role="article"], .article-body, .article-content, .post-content, .entry-content, .news-content, div[class*="article"], div[class*="content"], div[class*="post"], div[class*="entry"]';
-    const semantic = [...document.querySelectorAll(semanticSelector)].filter((el) => !excludedClass(el) && candidateContainer(el));
-    const semanticRoots = semantic.filter((el) => !semantic.some((other) => other !== el && el.contains(other)));
-    if (semanticRoots.length) return semanticRoots.slice(0, 20);
-
-    // A single h1 followed by the body: use the smallest article-sized ancestor of that h1.
-    const title = document.querySelector('main h1, article h1, h1');
-    if (title) {
-      const container = smallestContainerAbove(title);
-      if (container) return [container];
-    }
-
-    // Plain sequence of <p> elements: smallest article-sized ancestor per paragraph.
-    const roots = new Set();
-    const visited = new WeakSet();
-    for (const paragraph of document.querySelectorAll('p')) {
-      const container = smallestContainerAbove(paragraph, visited);
-      if (container) roots.add(container);
-    }
-    const paragraphRoots = [...roots].filter((el) => ![...roots].some((other) => other !== el && el.contains(other)));
-    if (paragraphRoots.length) return paragraphRoots.slice(0, 20);
-
-    // Generic fallback: the largest content containers, without nesting.
-    const generic = [...document.querySelectorAll('main, [role="main"], section, div')]
-      .filter((el) => !excludedClass(el) && candidateContainer(el))
-      .sort((a, b) => candidateText(b).length - candidateText(a).length);
-    const selected = [];
-    for (const element of generic) {
-      if (selected.some((parent) => parent.contains(element) || element.contains(parent))) continue;
-      selected.push(element);
-      if (selected.length >= 20) break;
-    }
-    return selected;
-  }
-
-  function smallestContainerAbove(node, visited) {
-    let parent = node.parentElement;
-    while (parent && parent !== document.body && parent !== document.documentElement) {
-      if (visited) {
-        if (visited.has(parent)) return null; // already evaluated via another paragraph
-        visited.add(parent);
-      }
-      if (!excludedClass(parent) && candidateContainer(parent)) return parent;
-      parent = parent.parentElement;
-    }
-    return null;
-  }
-
-  function isFaktorDomain() { return /(^|\.)faktor\.bg$/i.test(location.hostname); }
-  // Medium also serves publications on custom domains (e.g. levelup.gitconnected.com), so check its meta tags too.
-  function isMediumDomain() {
-    if (/(^|\.)medium\.com$/i.test(location.hostname)) return true;
-    return Boolean(document.querySelector('meta[property="al:android:app_name"][content="Medium"], meta[name="twitter:app:name:iphone"][content="Medium"], meta[property="al:android:package"][content="com.medium.reader"]'));
-  }
-
-  function candidateText(el) {
-    let text = textCache.get(el);
-    if (text === undefined) { text = normalizeText(el.innerText || el.textContent || ''); textCache.set(el, text); }
-    return text;
-  }
-
-  function candidateContainer(el) {
-    if (el === document.body || el === document.documentElement || el.isContentEditable) return false;
-    if (!roughlyLongEnough(el)) return false;
-    if (el.closest(BLOCKED_ANCESTORS) || !visible(el)) return false;
-    return textLengthOk(candidateText(el));
-  }
-
-  // Word-boundary-ish match so "shared-layout" or "navigation-free" class names are less likely to be excluded by accident.
-  const EXCLUDED_CLASS = /(^|[\s_-])(sidebar|header|footer|nav|navbar|navigation|menu|comments?|related|advert|ads?|banner|social|share|sharing)($|[\s_-])/i;
-  function excludedClass(el) { return EXCLUDED_CLASS.test(typeof el.className === 'string' ? el.className : ''); }
-
-  function visible(el) {
-    const style = getComputedStyle(el);
-    if (style.display === 'none' || style.visibility === 'hidden') return false;
-    const r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0) return true;
-    // `display: contents` wrappers have no box of their own while their children are visible.
-    return [...el.children].some((child) => {
-      const childStyle = getComputedStyle(child);
-      if (childStyle.display === 'none' || childStyle.visibility === 'hidden') return false;
-      const childRect = child.getBoundingClientRect();
-      return childRect.width > 0 && childRect.height > 0;
-    });
-  }
-
   function renderTrigger(anchor, text, hash) {
     if (anchor.hasAttribute(ANCHOR_ATTR) || anchor.querySelector(OWN_SELECTOR)) return;
     anchor.setAttribute(ANCHOR_ATTR, '');
     const host = document.createElement('span');
     host.dataset.essenceHash = hash; host.setAttribute(TRIGGER_ATTR, '');
-    host.style.cssText = 'all:initial !important;display:inline-block !important;position:relative !important;z-index:2147483646 !important;vertical-align:middle !important;margin:0 0 0 8px !important;width:28px !important;height:28px !important;';
+    host.style.cssText = 'all:initial !important;display:inline-block !important;position:static !important;vertical-align:middle !important;margin:0 0 0 8px !important;width:28px !important;height:28px !important;';
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML = `<style>:host{display:inline-block;vertical-align:middle}button{width:28px;height:28px;padding:0;border:0;border-radius:50%;background:transparent;color:#2563eb;cursor:pointer;display:grid;place-items:center}button:hover{background:#eff6ff}svg{width:19px;height:19px;display:block}</style><button title="Analyze with Essence" aria-label="Analyze with Essence"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>`;
-    root.querySelector('button').addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); host.remove(); analyze(anchor, text, hash); });
-    const firstText = isMediumDomain() ? findMediumInsertionText(anchor) : findFirstTextNode(anchor);
+    const button = root.querySelector('button');
+    // Keep the click away from the page: sites attach navigation or player handlers to ancestors.
+    for (const type of ['pointerdown', 'mousedown', 'mouseup', 'touchstart', 'touchend']) host.addEventListener(type, (event) => event.stopPropagation());
+    button.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); host.remove(); analyze(anchor, text, hash); });
+    const firstText = detector.findInsertionPoint(anchor);
     if (firstText?.parentNode) firstText.parentNode.insertBefore(host, firstText);
     else anchor.insertBefore(host, anchor.firstChild);
-  }
-
-  function findMediumInsertionText(root) {
-    const title = root.querySelector('h1');
-    return (title && findFirstTextNode(title)) || findFirstTextNode(root);
-  }
-
-  // Never place the icon inside floating toolbars, buttons, hidden or out-of-flow widgets
-  // that sites render inside the article (e.g. Medium's clap/response bar).
-  const NON_CONTENT = 'aside, nav, button, footer, form, figcaption, svg, [role="button"], [role="toolbar"], [role="navigation"], [aria-hidden="true"], [hidden]';
-  function isContentText(node, root) {
-    const parent = node.parentElement;
-    if (!parent) return false;
-    const blocker = parent.closest(NON_CONTENT);
-    if (blocker && (blocker === root || root.contains(blocker))) return false;
-    for (let el = parent; el && el !== root; el = el.parentElement) {
-      const style = getComputedStyle(el);
-      if (style.display === 'none' || style.visibility === 'hidden' || style.position === 'absolute' || style.position === 'fixed') return false;
-    }
-    return true;
-  }
-  function findFirstTextNode(root) {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) { return node.nodeValue?.trim() && isContentText(node, root) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
-    });
-    return walker.nextNode();
   }
 
   async function analyze(element, text, hash) {
@@ -242,7 +105,7 @@
   function renderPanel(anchor, hash) {
     const host = document.createElement('div');
     host.dataset.essenceHash = hash; host.setAttribute(PANEL_ATTR, '');
-    host.style.cssText = 'all:initial !important;display:block !important;position:relative !important;z-index:2147483646 !important;width:auto !important;height:auto !important;';
+    host.style.cssText = 'all:initial !important;display:block !important;position:static !important;width:auto !important;height:auto !important;';
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML = `<style>:host{display:block;margin:12px 0;font:14px/1.5 system-ui;color:#1f2937}.box{border:1px solid #dbe3ef;border-radius:12px;padding:16px;background:#f8fbff;box-shadow:0 2px 10px #102a430d}h3{margin:0 0 8px;font-size:15px}h4{margin:10px 0 4px;font-size:14px}p{margin:4px 0}.muted{color:#64748b}.score{font-weight:700;color:#2563eb}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}button{font:inherit;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:6px 10px;cursor:pointer}button:hover:not(:disabled){background:#eff6ff}button:disabled{cursor:default;opacity:.55}button.chosen{opacity:1;border-color:#2563eb;background:#eff6ff}ul{margin:6px 0;padding-left:20px}</style><div class="box"><h3>Essence</h3><div class="body">⏳ Analyzing…</div></div>`;
     anchor.parentNode.insertBefore(host, anchor);

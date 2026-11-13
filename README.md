@@ -27,3 +27,12 @@ npm test
 ```
 
 Тестовете покриват чистата логика в `src/shared.js` (Node 20+).
+
+Браузърни smoke тестове (зареждат разширението в Chromium с локални тестови страници и фалшив AI сървър):
+
+```
+npm install --no-save playwright && npx playwright install chromium
+npm run test:e2e
+```
+
+Логиката за откриване на статия и място на иконата е в `src/detect.js`.
