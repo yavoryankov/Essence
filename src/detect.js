@@ -163,7 +163,24 @@
         if (normalizeText(p.textContent).length < MIN_PARAGRAPH_CHARS || !isContentElement(p, anchor)) continue;
         const t = firstTextNode(p, anchor); if (t) return t;
       }
-      return firstTextNode(anchor);
+      // No title or <p> (feeds, div-based layouts): start of the first real block of prose,
+      // skipping short metadata lines such as author names, job titles and dates.
+      const walker = doc.createTreeWalker(anchor, 4 /* NodeFilter.SHOW_TEXT */, {
+        acceptNode(node) { return node.nodeValue?.trim() && node.parentElement && isContentElement(node.parentElement, anchor) ? 1 : 3; }
+      });
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const block = blockOf(node.parentElement, anchor);
+        if (normalizeText(block.textContent).length >= MIN_PARAGRAPH_CHARS && linkDensity(block) <= 0.5) return node;
+      }
+      return null; // no sensible place: better no icon than a misplaced one
+    }
+
+    function blockOf(el, root) {
+      for (let node = el; node && node !== root; node = node.parentElement) {
+        const display = win.getComputedStyle(node).display;
+        if (display === 'block' || display === 'flex' || display === 'grid' || display === 'list-item' || display === 'table-cell') return node;
+      }
+      return root;
     }
 
     return { collectCandidates, findInsertionPoint, candidateText, textLengthOk, linkDensity, proseDensity, isMediumSite, resetCache };

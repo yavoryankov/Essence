@@ -112,17 +112,19 @@
   }
 
   function addIcon(hash, anchor, text) {
+    const textNode = detector.findInsertionPoint(anchor);
+    if (!textNode) return false;
     ensureHost();
     const icon = document.createElement('button');
     icon.className = 'icon'; icon.title = 'Analyze with Essence'; icon.setAttribute('aria-label', 'Analyze with Essence');
     icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
     icon.addEventListener('click', (event) => { event.preventDefault(); openEntry(hash); });
     layer.appendChild(icon);
-    const textNode = detector.findInsertionPoint(anchor);
     // Short label for the popup: the paragraph (or title) the icon points at.
     const block = textNode?.parentElement?.closest('h1, h2, p, li, blockquote') || anchor;
     const snippet = globalThis.EssenceDetect.normalizeText(block.textContent).slice(0, 120) || text.slice(0, 120);
     entries.set(hash, { anchor, textNode, text, snippet, icon });
+    return true;
   }
 
   function schedulePosition() {
@@ -145,7 +147,7 @@
       let x = rect.left - ICON_SIZE - 8; let y = rect.top + (Math.min(rect.height, 40) - ICON_SIZE) / 2;
       if (x < 4) { x = rect.left; y = rect.top - ICON_SIZE - 4; }
       entry.icon.style.left = `${Math.round(x + window.scrollX)}px`;
-      entry.icon.style.top = `${Math.round(y + window.scrollY)}px`;
+      entry.icon.style.top = `${Math.max(0, Math.round(y + window.scrollY))}px`;
     }
   }
 
