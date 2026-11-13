@@ -2,7 +2,11 @@ const EXT = process.env.EXT || require('path').resolve(__dirname, '../..');
 const http = require('http'); const { chromium } = require('playwright');
 const P = (n) => 'Nvidia chief Jensen Huang said demand for AI chips remains strong as investors debate whether the boom can last. '.repeat(n);
 const links = Array.from({length: 25}, (_, i) => `<li><a href="/v/${i}">Recommended video headline number ${i} about markets</a></li>`).join('');
+const post = (i) => `<div class="feed-shared-update-v2"><div class="update-components-actor"><img width="48" height="48"><a href="/in/u${i}">Tornike Bolokadze</a><div><span class="update-components-actor__description">Co-founder of AI Pulse Georgia/Global | Agentic AI</span></div><span>14h • Edited</span></div>
+    <div class="feed-shared-inline-show-more-text"><span class="break-words"><span dir="ltr">${P(4)}<br><br>${P(4)}</span></span></div><div class="social-counts"><button>4,808</button><button>96</button></div></div>`;
 const pages = {
+  '/feed': `<html><body><main class="scaffold-layout__main">${post(1)}${post(2)}${post(3)}</main></body></html>`,
+  '/divbody': `<html><body><div itemprop="articleBody"><div class="meta"><a href="/author">Author Name</a> <span>Senior writer</span> <span>Nov 13</span></div><div class="text">${P(6)}</div><div class="text">${P(6)}</div></div></body></html>`,
   '/medium': `<html><head><meta property="al:android:app_name" content="Medium"></head><body><article class="meteredContent"><div style="position:relative"><aside style="position:absolute;right:0"><button><p>2</p></button></aside></div>
     <p>Member-only story</p><h1 class="title">The Real Title</h1><p class="paragraph">${P(3)}</p><p>${P(3)}</p><p>${P(3)}</p></article></body></html>`,
   '/home': `<html><body><div class="app"><noscript><style>.x{visibility:hidden}</style></noscript>${Array.from({length: 30}, (_, i) => `<div class="card"><h2><a href="/a/${i}">Headline ${i} that is fairly long for testing</a></h2><span>Summary text for story ${i} which is short and not linked.</span></div>`).join('')}</div></body></html>`,
@@ -29,6 +33,17 @@ const server = http.createServer((q, r) => {
   { const p = await ctx.newPage(); await p.goto('http://localhost:8770/home'); await p.waitForTimeout(3000);
     const n = await p.evaluate(() => document.querySelector('essence-overlay')?.shadowRoot.querySelectorAll('.icon').length || 0);
     results['/home'] = { icons: n, pass: n === 0 }; ok = ok && n === 0; await p.close(); }
+  // Social feed posts (no paragraphs, truncated): no icon next to author metadata.
+  { const p = await ctx.newPage(); await p.goto('http://localhost:8770/feed'); await p.waitForTimeout(3000);
+    const r = await p.evaluate(() => { const icons = [...(document.querySelector('essence-overlay')?.shadowRoot.querySelectorAll('.icon') || [])].filter(i => !i.hidden).map(i => Math.round(i.getBoundingClientRect().y + scrollY));
+      const metas = [...document.querySelectorAll('.update-components-actor__description')].map(e => Math.round(e.getBoundingClientRect().y + scrollY));
+      return { icons, metas }; });
+    r.pass = !r.icons.some((y) => r.metas.some((m) => Math.abs(y - m) < 20)); results['/feed'] = r; ok = ok && r.pass; await p.close(); }
+  // Div-based article body: icon at the prose, not at the author line.
+  { const p = await ctx.newPage(); await p.goto('http://localhost:8770/divbody'); await p.waitForTimeout(3000);
+    const r = await p.evaluate(() => { const icons = [...(document.querySelector('essence-overlay')?.shadowRoot.querySelectorAll('.icon') || [])].map(i => Math.round(i.getBoundingClientRect().y + scrollY));
+      return { icons, text: Math.round(document.querySelector('.text').getBoundingClientRect().y + scrollY), meta: Math.round(document.querySelector('.meta').getBoundingClientRect().y + scrollY) }; });
+    r.pass = r.icons.length === 1 && Math.abs(r.icons[0] - r.text) < 35 && Math.abs(r.icons[0] - r.text) < Math.abs(r.icons[0] - r.meta) + 20; results['/divbody'] = r; ok = ok && r.pass; await p.close(); }
   for (const path of ['/cnn', '/fox', '/medium']) {
     const p = await ctx.newPage(); const errors = []; p.on('pageerror', e => errors.push(e.message));
     await p.goto('http://localhost:8770' + path);

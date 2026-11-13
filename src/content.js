@@ -141,14 +141,26 @@
         continue;
       }
       const rect = startRect(entry);
-      if (!rect) { entry.icon.hidden = true; continue; }
+      // Show the icon only while the start of its text is actually visible: not scrolled out of
+      // the viewport or out of an inner scroll container, and not covered by a sticky header.
+      if (!rect || !isStartVisible(rect, entry.anchor)) { entry.icon.hidden = true; continue; }
       entry.icon.hidden = false;
       // To the left of the first line when there is room, otherwise just above it.
       let x = rect.left - ICON_SIZE - 8; let y = rect.top + (Math.min(rect.height, 40) - ICON_SIZE) / 2;
       if (x < 4) { x = rect.left; y = rect.top - ICON_SIZE - 4; }
       entry.icon.style.left = `${Math.round(x + window.scrollX)}px`;
-      entry.icon.style.top = `${Math.max(0, Math.round(y + window.scrollY))}px`;
+      entry.icon.style.top = `${Math.round(y + window.scrollY)}px`;
     }
+  }
+
+  function isStartVisible(rect, anchor) {
+    const vw = document.documentElement.clientWidth || window.innerWidth;
+    const vh = document.documentElement.clientHeight || window.innerHeight;
+    const x = rect.left + Math.min(rect.width / 2, 4);
+    const y = rect.top + Math.min(rect.height / 2, 10);
+    if (x < 0 || y < 0 || x >= vw || y >= vh) return false;
+    const hit = document.elementFromPoint(x, y);
+    return Boolean(hit && (hit === host || anchor.contains(hit)));
   }
 
   function startRect(entry) {
