@@ -10,7 +10,7 @@ const server = http.createServer((req, res) => { let b=''; req.on('data',c=>b+=c
   const p = await ctx.newPage(); const errs=[]; p.on('pageerror', e=>errs.push(e.message));
   await p.goto(`chrome-extension://${sw.url().split('/')[2]}/src/options.html`); await p.waitForTimeout(400);
   const initial = { textarea: await p.inputValue('#customSystemPrompt'), count: await p.textContent('#promptCount'), preview: await p.textContent('#previewSystem') };
-  await p.fill('#customSystemPrompt', 'Ти си редактор. Пиши кратко и без клишета.');
+  await p.fill('#customSystemPrompt', 'You are an editor. Be brief and avoid clichés.');
   await p.selectOption('#outputLanguage', 'en'); await p.check('#showKeyPoints');
   const live = { count: await p.textContent('#promptCount'), preview: await p.textContent('#previewSystem') };
   await p.click('#save'); await p.waitForTimeout(300);
@@ -21,7 +21,7 @@ const server = http.createServer((req, res) => { let b=''; req.on('data',c=>b+=c
   await p.click('#resetPrompt'); await p.click('#save'); await p.waitForTimeout(300);
   const storedAfterReset = (await sw.evaluate(() => chrome.storage.local.get('settings'))).settings.customSystemPrompt;
   const r = await send('abc'); const newRequestAfterReset = !r.cached && last && last.messages[0].content.startsWith('You summarize');
-  await p.fill('#customSystemPrompt', 'Ти си редактор. Пиши кратко и без клишета.'); await p.evaluate(() => document.querySelector('#customSystemPrompt').dispatchEvent(new Event('input')));
+  await p.fill('#customSystemPrompt', 'You are an editor. Be brief and avoid clichés.'); await p.evaluate(() => document.querySelector('#customSystemPrompt').dispatchEvent(new Event('input')));
   await p.locator('h2', { hasText: 'AI prompt' }).scrollIntoViewIfNeeded();
   await p.locator('section', { hasText: 'AI prompt' }).screenshot({ path: require('path').join(require('os').tmpdir(), 'prompt-settings.png') });
   console.log(JSON.stringify({ errs, initial, live, storedPrompt: stored.customSystemPrompt, storedLang: stored.outputLanguage, sent1, cachedSame, storedAfterReset, newRequestAfterReset }, null, 1));

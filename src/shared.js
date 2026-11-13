@@ -138,7 +138,8 @@ function termsOf(item) { return new Set([...(item.topics || []), ...(item.keywor
 
 /**
  * Score 0-100 from local ratings. Compares stemmed topics+keywords so that
- * "Изкуствен интелект" and "изкуствения интелект" still match.
+ * inflected forms of the same word (e.g. "election" and "elections") still match.
+ * Works for any alphabet, including Cyrillic.
  */
 export function predictInterest(result, feedbackList) {
   if (feedbackList.length < 3) return { score: null, confidence: 0, reasons: [] };

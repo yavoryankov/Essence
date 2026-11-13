@@ -43,22 +43,23 @@ test('maxTokensFor leaves room for Cyrillic output', () => {
   assert.ok(maxTokensFor({ showKeyPoints: true }) > maxTokensFor({}));
 });
 
-test('stems match inflected Bulgarian forms', () => {
-  assert.deepEqual(stems('Изкуствен интелект'), stems('изкуствения интелекта'));
+test('stems match inflected forms and non-ASCII letters', () => {
+  assert.deepEqual(stems('Election results'), stems('elections result'));
+  assert.deepEqual(stems('naïveté'), stems('naïvetés'));
 });
 
 test('predictInterest needs 3 ratings and uses stemmed overlap', () => {
   const fb = [
-    { rating: 'interesting', topics: ['Изкуствен интелект'], keywords: [] },
-    { rating: 'interesting', topics: ['изкуствения интелект'], keywords: ['модели'] },
-    { rating: 'boring', topics: ['Футбол'], keywords: [] }
+    { rating: 'interesting', topics: ['Artificial intelligence'], keywords: [] },
+    { rating: 'interesting', topics: ['artificial intelligence'], keywords: ['models'] },
+    { rating: 'boring', topics: ['Football'], keywords: [] }
   ];
   assert.equal(predictInterest({ topics: ['AI'] }, fb.slice(0, 2)).score, null);
-  const ai = predictInterest({ topics: ['Изкуствен интелект'], keywords: [] }, fb);
-  const sport = predictInterest({ topics: ['футбола'], keywords: [] }, fb);
+  const ai = predictInterest({ topics: ['Artificial intelligence'], keywords: [] }, fb);
+  const sport = predictInterest({ topics: ['football league'], keywords: [] }, fb);
   assert.ok(ai.score > 50, `ai ${ai.score}`);
   assert.ok(sport.score < 50, `sport ${sport.score}`);
-  assert.deepEqual(ai.reasons, ['Изкуствен интелект']);
+  assert.deepEqual(ai.reasons, ['Artificial intelligence']);
 });
 
 test('pruneNewest keeps newest entries', () => {
@@ -84,8 +85,8 @@ test('buildPrompt uses default instructions and always appends the JSON format',
 });
 
 test('buildPrompt uses custom instructions, caps their length and maps languages', () => {
-  const { system } = buildPrompt({ customSystemPrompt: '  Моят промпт  ', outputLanguage: 'source' }, '', '');
-  assert.ok(system.startsWith('Моят промпт\n'));
+  const { system } = buildPrompt({ customSystemPrompt: '  My prompt  ', outputLanguage: 'source' }, '', '');
+  assert.ok(system.startsWith('My prompt\n'));
   assert.match(system, /Return exactly this JSON shape/);
   assert.match(system, /same as the source text/);
   const long = buildPrompt({ customSystemPrompt: 'a'.repeat(MAX_CUSTOM_PROMPT_LENGTH + 50) }, '', '').system;

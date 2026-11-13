@@ -21,7 +21,7 @@ const pages = {
 };
 let apiCalls = 0;
 const server = http.createServer((q, r) => {
-  if (q.url.startsWith('/v1/')) { let b=''; q.on('data',c=>b+=c); q.on('end',()=>{ apiCalls++; r.writeHead(200,{'content-type':'application/json'}); r.end(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'{"essence":"Резюме <i>x</i>","topics":["AI"],"keywords":["Nvidia"]}'}}],usage:{}})); }); return; }
+  if (q.url.startsWith('/v1/')) { let b=''; q.on('data',c=>b+=c); q.on('end',()=>{ apiCalls++; r.writeHead(200,{'content-type':'application/json'}); r.end(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'{"essence":"Summary <i>x</i>","topics":["AI"],"keywords":["Nvidia"]}'}}],usage:{}})); }); return; }
   r.writeHead(200, {'content-type':'text/html; charset=utf-8'}); r.end(pages[q.url] || '<html><body>other page</body></html>');
 }).listen(8770);
 (async () => {

@@ -5,8 +5,8 @@ const server = http.createServer((req, res) => {
   seen = { url: req.url, direct: req.headers['anthropic-dangerous-direct-browser-access'], key: req.headers['x-api-key'] };
   let b=''; req.on('data',c=>b+=c); req.on('end',()=>{ seen.body = JSON.parse(b);
     if (seen.body.messages[0].content.includes('fail')) { res.writeHead(400,{'content-type':'application/json'}); res.end(JSON.stringify({type:'error',error:{type:'invalid_request_error',message:'model: not-a-model'}})); return; }
-    if (seen.body.messages[0].content.includes('cut')) { res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify({content:[{type:'text',text:'{"essence":"на'}],stop_reason:'max_tokens',usage:{input_tokens:5,output_tokens:5}})); return; }
-    res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify({content:[{type:'text',text:'Ето:\n```json\n{"essence":"ок","topics":["a"],"keywords":[]}\n```'}],stop_reason:'end_turn',usage:{input_tokens:5,output_tokens:5}})); });
+    if (seen.body.messages[0].content.includes('cut')) { res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify({content:[{type:'text',text:'{"essence":"tru'}],stop_reason:'max_tokens',usage:{input_tokens:5,output_tokens:5}})); return; }
+    res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify({content:[{type:'text',text:'Here:\n```json\n{"essence":"ok","topics":["a"],"keywords":[]}\n```'}],stop_reason:'end_turn',usage:{input_tokens:5,output_tokens:5}})); });
 }).listen(8766);
 (async () => {
   const ctx = await chromium.launchPersistentContext('', { headless: true, channel: 'chromium', args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`] });
