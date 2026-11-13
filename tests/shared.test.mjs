@@ -92,3 +92,10 @@ test('buildPrompt uses custom instructions, caps their length and maps languages
   const long = buildPrompt({ customSystemPrompt: 'a'.repeat(MAX_CUSTOM_PROMPT_LENGTH + 50) }, '', '').system;
   assert.ok(long.startsWith('a'.repeat(MAX_CUSTOM_PROMPT_LENGTH) + '\n'));
 });
+
+import { DEFAULT_SETTINGS } from '../src/shared.js';
+
+test('summaries default to the language of the article', () => {
+  assert.equal(DEFAULT_SETTINGS.outputLanguage, 'source');
+  assert.match(buildPrompt({}, '', '').system, /Output language: same as the source text\./);
+});

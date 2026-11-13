@@ -54,7 +54,7 @@ After updating the files, click **Reload** on the extension in `chrome://extensi
 | AI provider, endpoint, model, API key | Settings | OpenAI, `gpt-4o-mini` |
 | Daily request limit | Settings | 50 (0 = unlimited) |
 | Token prices for cost estimates | Settings | 0 |
-| AI prompt and output language | Settings | Built-in prompt, Bulgarian |
+| AI prompt and output language | Settings | Built-in prompt, same language as the article |
 
 ### Providers
 

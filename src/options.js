@@ -17,7 +17,7 @@ for (const key of TEXT_KEYS) $(`#${key}`).value = settings[key] || '';
 for (const key of NUMBER_KEYS) $(`#${key}`).value = settings[key] ?? 0;
 for (const key of CHECK_KEYS) $(`#${key}`).checked = Boolean(settings[key]);
 $('#customSystemPrompt').value = String(settings.customSystemPrompt || '').trim() || DEFAULT_SYSTEM_PROMPT;
-$('#outputLanguage').value = settings.outputLanguage || 'bg';
+$('#outputLanguage').value = settings.outputLanguage || 'source';
 
 function promptSettingsFromForm() {
   return {

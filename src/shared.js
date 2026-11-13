@@ -2,7 +2,7 @@
 // pages, and via dynamic import() by the content script.
 
 export const DEFAULT_SETTINGS = {
-  enabled: false, minimumCharacters: 1000, outputLanguage: 'bg', displayMode: 'above',
+  enabled: false, minimumCharacters: 1000, outputLanguage: 'source', displayMode: 'above',
   showInterestScore: false, showKeyPoints: false, showTopics: false, showConclusion: false,
   inputCostPerMillion: 0, outputCostPerMillion: 0,
   provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions',
@@ -102,7 +102,7 @@ export const MAX_CUSTOM_PROMPT_LENGTH = 4000;
 export const MAX_SENT_TEXT_LENGTH = 12000;
 
 export const OUTPUT_LANGUAGES = { bg: 'Bulgarian', en: 'English', source: 'same as the source text' };
-function languageInstruction(code) { return OUTPUT_LANGUAGES[code] || code || OUTPUT_LANGUAGES.bg; }
+function languageInstruction(code) { return OUTPUT_LANGUAGES[code] || code || OUTPUT_LANGUAGES.source; }
 
 export function effectiveSystemPrompt(settings) {
   const custom = String(settings.customSystemPrompt || '').trim();
