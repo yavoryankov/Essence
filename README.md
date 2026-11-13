@@ -8,9 +8,13 @@ When it's enabled, Essence places a small target icon next to long articles. Cli
 
 ## Screenshots
 
-![Essence summary popup](docs/popup.png)
+The Essence icon next to an article:
 
-![Essence settings](docs/settings.png)
+![Essence icon next to an article](docs/icon.png)
+
+The summary popup:
+
+![Essence summary popup](docs/popup.png)
 
 ## Features
 
