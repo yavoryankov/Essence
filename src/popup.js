@@ -2,12 +2,11 @@ import { getSettings, saveSettings, domainOf, isDomainExcluded, todayKey } from 
 
 const enabled = document.querySelector('#enabled');
 const minimum = document.querySelector('#minimumCharacters');
-const mode = document.querySelector('#displayMode');
 const siteButton = document.querySelector('#site');
 const status = document.querySelector('#status');
 
 let settings = await getSettings();
-enabled.checked = settings.enabled; minimum.value = settings.minimumCharacters; mode.value = settings.displayMode;
+enabled.checked = settings.enabled; minimum.value = settings.minimumCharacters;
 
 const { usage = {}, dailyUsage } = await chrome.storage.local.get(['usage', 'dailyUsage']);
 const today = dailyUsage?.day === todayKey() ? dailyUsage.count : 0;
@@ -21,7 +20,6 @@ minimum.onchange = async () => {
   minimum.value = clamped;
   settings = await saveSettings({ minimumCharacters: clamped });
 };
-mode.onchange = async () => { settings = await saveSettings({ displayMode: mode.value }); };
 document.querySelector('#options').onclick = () => chrome.runtime.openOptionsPage();
 
 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

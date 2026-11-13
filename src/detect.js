@@ -19,7 +19,7 @@
 
   const normalizeText = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
-  function createDetector({ doc = document, getMinimum = () => 1000, isMedium, isFaktor } = {}) {
+  function createDetector({ doc = document, getMinimum = () => 1000, isMedium, isFaktor, isAnchored = () => false } = {}) {
     const win = doc.defaultView;
     let textCache = new WeakMap();
     const minimum = () => getMinimum();
@@ -70,7 +70,7 @@
     }
 
     function isArticleLike(el) {
-      return roughlyLongEnough(el) && !el.hasAttribute(ANCHOR_ATTR) && !el.querySelector(OWN_SELECTOR)
+      return roughlyLongEnough(el) && !isAnchored(el)
         && textLengthOk(candidateText(el)) && linkDensity(el) <= MAX_LINK_DENSITY;
     }
 
